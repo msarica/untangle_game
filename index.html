@@ -17,6 +17,12 @@
     <meta name="msapplication-TileColor" content="#4a90e2" />
     <meta name="msapplication-tap-highlight" content="no" />
 
+    <!-- Prevent unwanted gestures -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="msapplication-navbutton-color" content="#4a90e2" />
+    <meta name="apple-touch-fullscreen" content="yes" />
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="/untangle/manifest.json?v=2" />
 
@@ -61,7 +67,7 @@
         </div>
     </div>
     <script>
-        // Prevent browser back navigation on mobile devices
+        // Prevent browser back navigation and drag-to-go-back gesture
         (function () {
             // Push a dummy state to prevent back navigation
             history.pushState(null, null, location.href);
@@ -69,6 +75,63 @@
             // Listen for popstate events and push the state back
             window.addEventListener('popstate', function (event) {
                 history.pushState(null, null, location.href);
+            });
+
+            // Prevent drag-to-go-back gesture
+            let startX = 0;
+            let startY = 0;
+            let isScrolling = false;
+
+            // Prevent default touch behaviors
+            document.addEventListener('touchstart', function (e) {
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                isScrolling = false;
+            }, { passive: false });
+
+            document.addEventListener('touchmove', function (e) {
+                if (!startX || !startY) return;
+
+                const currentX = e.touches[0].clientX;
+                const currentY = e.touches[0].clientY;
+                const diffX = Math.abs(currentX - startX);
+                const diffY = Math.abs(currentY - startY);
+
+                // If horizontal swipe is greater than vertical, prevent it
+                if (diffX > diffY && diffX > 10) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+
+                // If vertical scroll is detected, allow it
+                if (diffY > diffX && diffY > 10) {
+                    isScrolling = true;
+                }
+            }, { passive: false });
+
+            document.addEventListener('touchend', function (e) {
+                startX = 0;
+                startY = 0;
+                isScrolling = false;
+            }, { passive: false });
+
+            // Prevent context menu on long press
+            document.addEventListener('contextmenu', function (e) {
+                e.preventDefault();
+                return false;
+            });
+
+            // Prevent text selection
+            document.addEventListener('selectstart', function (e) {
+                e.preventDefault();
+                return false;
+            });
+
+            // Prevent drag
+            document.addEventListener('dragstart', function (e) {
+                e.preventDefault();
+                return false;
             });
         })();
 
