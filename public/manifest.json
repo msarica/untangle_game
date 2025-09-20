@@ -1,0 +1,28 @@
+{
+  "name": "Untangle Game",
+  "short_name": "Untangle",
+  "description": "A puzzle game where you untangle connected nodes",
+  "start_url": "/untangle/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4a90e2",
+  "orientation": "portrait-primary",
+  "scope": "/untangle/",
+  "icons": [
+    {
+      "src": "/untangle/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/untangle/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "lang": "en",
+  "dir": "ltr"
+}
