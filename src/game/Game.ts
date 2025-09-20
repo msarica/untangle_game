@@ -11,9 +11,11 @@ export class Game {
     private inputManager: InputManager;
     private gameState: GameState;
     private animationId: number | null = null;
+    private currentSolution: { circles: Circle[]; lines: Line[] } | null = null;
     private levelDisplay: HTMLElement;
     private restartButton: HTMLButtonElement;
     private newGameButton: HTMLButtonElement;
+    private solveButton: HTMLButtonElement;
     private congratulationsElement: HTMLElement;
     private nextLevelButton: HTMLButtonElement;
     private newGameDialog: HTMLElement;
@@ -37,6 +39,7 @@ export class Game {
         this.levelDisplay = document.getElementById('level-display')!;
         this.restartButton = document.getElementById('restart-btn') as HTMLButtonElement;
         this.newGameButton = document.getElementById('new-game-btn') as HTMLButtonElement;
+        this.solveButton = document.getElementById('solve-btn') as HTMLButtonElement;
         this.congratulationsElement = document.getElementById('congratulations')!;
         this.nextLevelButton = document.getElementById('next-level-btn') as HTMLButtonElement;
         this.newGameDialog = document.getElementById('new-game-dialog')!;
@@ -46,6 +49,7 @@ export class Game {
         // Setup event listeners
         this.restartButton.addEventListener('click', () => this.initializeGame());
         this.newGameButton.addEventListener('click', () => this.showNewGameDialog());
+        this.solveButton.addEventListener('click', () => this.showSolution());
         this.nextLevelButton.addEventListener('click', () => this.nextLevel());
         this.confirmNewGameButton.addEventListener('click', () => this.startNewGame());
         this.cancelNewGameButton.addEventListener('click', () => this.hideNewGameDialog());
@@ -76,6 +80,12 @@ export class Game {
         window.addEventListener('resize', resizeCanvas);
     }
 
+    /**
+     * Initialize the current level by generating or loading the level configuration.
+     * 
+     * This method handles both new level generation and loading stored configurations.
+     * It also sets up the input manager and performs initial intersection detection.
+     */
     private initializeGame(): void {
         this.gameState.isCompleted = false;
         this.hideCongratulations();
@@ -87,10 +97,11 @@ export class Game {
         const level = GameLevel.generateLevel(this.gameState.currentLevel, this.gameState.canvasSize, storedConfig);
         this.gameState.circles = level.circles;
         this.gameState.lines = level.lines;
+        this.currentSolution = level.solution || null;
 
         // Store the level configuration if it's new (not from stored config)
         if (!storedConfig) {
-            this.storeLevelConfig(this.gameState.currentLevel, level.circles, level.lines);
+            this.storeLevelConfig(this.gameState.currentLevel, level.circles, level.lines, level.solution);
         }
 
         // Update input manager with circles for hit testing
@@ -137,6 +148,39 @@ export class Game {
         this.initializeGame();
     }
 
+    /**
+     * Temporarily show the solution configuration for 3 seconds.
+     * 
+     * Saves the current state, applies the solution, then restores the original state.
+     * This allows players to see the correct arrangement without permanently solving the puzzle.
+     */
+    private showSolution(): void {
+        if (!this.currentSolution) {
+            console.warn('No solution available for current level');
+            return;
+        }
+
+        // Save current state
+        const originalCircles = this.deepCopyCircles(this.gameState.circles);
+        const originalLines = this.deepCopyLines(this.gameState.lines);
+
+        // Apply the solution
+        this.gameState.circles = this.deepCopyCircles(this.currentSolution.circles);
+        this.gameState.lines = this.deepCopyLines(this.currentSolution.lines);
+
+        // Update input manager and intersection detection
+        this.inputManager.updateCircleHitTest(this.gameState.circles);
+        IntersectionDetector.updateIntersections(this.gameState.circles, this.gameState.lines);
+
+        // Restore original state after 3 seconds
+        setTimeout(() => {
+            this.gameState.circles = originalCircles;
+            this.gameState.lines = originalLines;
+            this.inputManager.updateCircleHitTest(this.gameState.circles);
+            IntersectionDetector.updateIntersections(this.gameState.circles, this.gameState.lines);
+        }, 3000);
+    }
+
     private loadSavedLevel(): number {
         const savedLevel = localStorage.getItem('untangle-game-level');
         return savedLevel ? parseInt(savedLevel, 10) : 1;
@@ -146,12 +190,16 @@ export class Game {
         localStorage.setItem('untangle-game-level', this.gameState.currentLevel.toString());
     }
 
-    private storeLevelConfig(levelNumber: number, circles: Circle[], lines: Line[]): void {
+    private storeLevelConfig(levelNumber: number, circles: Circle[], lines: Line[], solution?: { circles: Circle[]; lines: Line[] }): void {
         const config: LevelConfig = {
             circles: this.deepCopyCircles(circles),
             lines: this.deepCopyLines(lines),
             levelNumber,
-            canvasSize: { ...this.gameState.canvasSize }
+            canvasSize: { ...this.gameState.canvasSize },
+            solution: solution ? {
+                circles: this.deepCopyCircles(solution.circles),
+                lines: this.deepCopyLines(solution.lines)
+            } : undefined
         };
         this.gameState.levelConfigs.set(levelNumber, config);
     }

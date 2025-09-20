@@ -8,6 +8,8 @@ export class InputManager {
     private onCircleDragEnd: (circleId: number) => void;
 
     private draggedCircleId: number | null = null;
+    private isDragging: boolean = false;
+    private preventBackNavigation: (event: TouchEvent) => void;
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -19,6 +21,9 @@ export class InputManager {
         this.onCircleDragStart = onCircleDragStart;
         this.onCircleDrag = onCircleDrag;
         this.onCircleDragEnd = onCircleDragEnd;
+
+        // Create a bound function to prevent back navigation
+        this.preventBackNavigation = this.handlePreventBackNavigation.bind(this);
 
         this.setupEventListeners();
     }
@@ -87,6 +92,12 @@ export class InputManager {
         const circleId = this.findCircleAtPosition(position);
         if (circleId !== null) {
             this.draggedCircleId = circleId;
+            this.isDragging = true;
+
+            // Add document-level touch prevention to stop browser back navigation
+            document.addEventListener('touchstart', this.preventBackNavigation, { passive: false });
+            document.addEventListener('touchmove', this.preventBackNavigation, { passive: false });
+
             this.onCircleDragStart(circleId, position);
         }
     }
@@ -101,6 +112,11 @@ export class InputManager {
         if (this.draggedCircleId !== null) {
             this.onCircleDragEnd(this.draggedCircleId);
             this.draggedCircleId = null;
+            this.isDragging = false;
+
+            // Remove document-level touch prevention
+            document.removeEventListener('touchstart', this.preventBackNavigation);
+            document.removeEventListener('touchmove', this.preventBackNavigation);
         }
     }
 
@@ -123,6 +139,14 @@ export class InputManager {
             x: touch.clientX - rect.left,
             y: touch.clientY - rect.top
         };
+    }
+
+    private handlePreventBackNavigation(event: TouchEvent): void {
+        // Only prevent back navigation when we're actively dragging
+        if (this.isDragging) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
     }
 
     public updateCircleHitTest(circles: Circle[]): void {

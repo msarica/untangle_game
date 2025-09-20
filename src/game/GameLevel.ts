@@ -17,7 +17,7 @@ export class GameLevel {
      * - Level 7: 8 nodes, 3 connections each
      * - And so on...
      */
-    static generateLevel(levelNumber: number, canvasSize: Point, storedConfig?: LevelConfig): { circles: Circle[]; lines: Line[] } {
+    static generateLevel(levelNumber: number, canvasSize: Point, storedConfig?: LevelConfig): { circles: Circle[]; lines: Line[]; solution?: { circles: Circle[]; lines: Line[] } } {
         // If we have a stored config for this level and canvas size matches, use it
         if (storedConfig &&
             storedConfig.levelNumber === levelNumber &&
@@ -26,7 +26,11 @@ export class GameLevel {
             // Deep copy the stored configuration to avoid modifying the original
             return {
                 circles: this.deepCopyCircles(storedConfig.circles),
-                lines: this.deepCopyLines(storedConfig.lines)
+                lines: this.deepCopyLines(storedConfig.lines),
+                solution: storedConfig.solution ? {
+                    circles: this.deepCopyCircles(storedConfig.solution.circles),
+                    lines: this.deepCopyLines(storedConfig.solution.lines)
+                } : undefined
             };
         }
 
@@ -59,22 +63,39 @@ export class GameLevel {
     }
 
     /**
-     * Generate a solvable level using the solution-first approach:
-     * 1. Place nodes in a non-intersecting layout
-     * 2. Draw non-intersecting lines (this is the solution)
-     * 3. Scramble the node positions while keeping connections
+     * Generate a solvable level using the solution-first approach.
+     * 
+     * Process:
+     * 1. Place nodes in a circular layout that allows non-intersecting connections
+     * 2. Generate connections that are guaranteed to be non-intersecting (solution)
+     * 3. Save the solution configuration
+     * 4. Scramble node positions while keeping the same connections (puzzle)
+     * 
+     * @param nodeCount Number of nodes in the level
+     * @param connectionsPerNode Target connections per node
+     * @param canvasSize Canvas dimensions
+     * @returns Level configuration with circles, lines, and solution
      */
     private static generateSolvableLevel(
         nodeCount: number,
         connectionsPerNode: number,
         canvasSize: Point
-    ): { circles: Circle[]; lines: Line[] } {
+    ): { circles: Circle[]; lines: Line[]; solution: { circles: Circle[]; lines: Line[] } } {
 
         // Step 1: Create nodes in a non-intersecting layout
         const circles = this.createNonIntersectingLayout(nodeCount, canvasSize);
 
         // Step 2: Generate connections (these will be non-intersecting by design)
         const lines = this.generateNonIntersectingConnections(circles, connectionsPerNode);
+
+        // Save the solution before scrambling
+        const solution = {
+            circles: this.deepCopyCircles(circles),
+            lines: this.deepCopyLines(lines)
+        };
+
+        // Verify the solution is actually non-intersecting
+        this.verifySolutionNonIntersecting(solution.circles, solution.lines);
 
         // Step 3: Scramble the node positions while keeping connections
         this.scrambleNodePositions(circles, canvasSize);
@@ -88,11 +109,15 @@ export class GameLevel {
             console.error(`ERROR: Some nodes have fewer than 3 connections!`);
         }
 
-        return { circles, lines };
+        return { circles, lines, solution };
     }
 
     /**
-     * Create nodes in a layout that allows for non-intersecting connections
+     * Create nodes in a circular layout that allows for non-intersecting connections.
+     * 
+     * @param nodeCount Number of nodes to create
+     * @param canvasSize Canvas dimensions
+     * @returns Array of circles positioned in a circle pattern
      */
     private static createNonIntersectingLayout(
         nodeCount: number,
@@ -123,7 +148,14 @@ export class GameLevel {
     }
 
     /**
-     * Generate connections that are guaranteed to be non-intersecting
+     * Generate connections that are guaranteed to be non-intersecting.
+     * 
+     * Uses a greedy algorithm that checks for intersections before creating each connection.
+     * Ensures each node has at least 3 connections and up to the target number.
+     * 
+     * @param circles Array of circles to connect
+     * @param connectionsPerNode Target number of connections per node
+     * @returns Array of non-intersecting lines
      */
     private static generateNonIntersectingConnections(
         circles: Circle[],
@@ -161,7 +193,7 @@ export class GameLevel {
                 // Skip if this node already has enough connections
                 if (circle.connections.length >= 3) continue;
 
-                const targetCircle = this.findBestConnectionTarget(circle, circles, connectionsPerNode, usedConnections);
+                const targetCircle = this.findBestNonIntersectingConnectionTarget(circle, circles, connectionsPerNode, usedConnections, lines);
                 if (!targetCircle) continue;
 
                 const connectionKey = `${Math.min(circle.id, targetCircle.id)}-${Math.max(circle.id, targetCircle.id)}`;
@@ -190,7 +222,7 @@ export class GameLevel {
         // Final pass: add remaining connections up to the target
         circles.forEach(circle => {
             while (circle.connections.length < connectionsPerNode) {
-                const targetCircle = this.findBestConnectionTarget(circle, circles, connectionsPerNode, usedConnections);
+                const targetCircle = this.findBestNonIntersectingConnectionTarget(circle, circles, connectionsPerNode, usedConnections, lines);
                 if (!targetCircle) break;
 
                 const connectionKey = `${Math.min(circle.id, targetCircle.id)}-${Math.max(circle.id, targetCircle.id)}`;
@@ -210,13 +242,14 @@ export class GameLevel {
     }
 
     /**
-     * Find the best connection target for a circle
+     * Find the best connection target for a circle that won't create intersections
      */
-    private static findBestConnectionTarget(
+    private static findBestNonIntersectingConnectionTarget(
         circle: Circle,
         circles: Circle[],
         connectionsPerNode: number,
-        usedConnections: Set<string>
+        usedConnections: Set<string>,
+        existingLines: Line[]
     ): Circle | null {
         const availableCircles = circles.filter(c =>
             c.id !== circle.id &&
@@ -233,10 +266,74 @@ export class GameLevel {
             return distA - distB;
         });
 
-        const targetCircle = sorted[0];
-        const connectionKey = `${Math.min(circle.id, targetCircle.id)}-${Math.max(circle.id, targetCircle.id)}`;
+        // Find the first target that won't create intersections
+        for (const targetCircle of sorted) {
+            const connectionKey = `${Math.min(circle.id, targetCircle.id)}-${Math.max(circle.id, targetCircle.id)}`;
 
-        return usedConnections.has(connectionKey) ? null : targetCircle;
+            // Skip if connection already exists
+            if (usedConnections.has(connectionKey)) continue;
+
+            // Check if this connection would intersect with any existing lines
+            const wouldIntersect = this.wouldLineIntersect(
+                circle.position,
+                targetCircle.position,
+                existingLines,
+                circles
+            );
+
+            if (!wouldIntersect) {
+                return targetCircle;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Check if a potential line would intersect with any existing lines
+     */
+    private static wouldLineIntersect(
+        fromPos: Point,
+        toPos: Point,
+        existingLines: Line[],
+        circles: Circle[]
+    ): boolean {
+        for (const line of existingLines) {
+            const lineFromCircle = circles.find(c => c.id === line.from)!;
+            const lineToCircle = circles.find(c => c.id === line.to)!;
+
+            // Skip if lines share a common endpoint
+            if (this.linesShareEndpoint(fromPos, toPos, lineFromCircle.position, lineToCircle.position)) {
+                continue;
+            }
+
+            if (MathUtils.lineSegmentsIntersect(
+                fromPos,
+                toPos,
+                lineFromCircle.position,
+                lineToCircle.position
+            )) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if two line segments share a common endpoint
+     */
+    private static linesShareEndpoint(
+        line1From: Point,
+        line1To: Point,
+        line2From: Point,
+        line2To: Point
+    ): boolean {
+        const tolerance = 1; // Small tolerance for floating point comparison
+
+        return (MathUtils.distance(line1From, line2From) < tolerance ||
+            MathUtils.distance(line1From, line2To) < tolerance ||
+            MathUtils.distance(line1To, line2From) < tolerance ||
+            MathUtils.distance(line1To, line2To) < tolerance);
     }
 
     /**
@@ -300,6 +397,56 @@ export class GameLevel {
      */
     private static deepCopyLines(lines: Line[]): Line[] {
         return lines.map(line => ({ ...line }));
+    }
+
+    /**
+     * Verify that the solution is actually non-intersecting
+     */
+    private static verifySolutionNonIntersecting(circles: Circle[], lines: Line[]): void {
+        let intersectionCount = 0;
+
+        for (let i = 0; i < lines.length; i++) {
+            for (let j = i + 1; j < lines.length; j++) {
+                const line1 = lines[i];
+                const line2 = lines[j];
+
+                // Skip if lines share a common endpoint
+                if (this.shareEndpoint(line1, line2)) {
+                    continue;
+                }
+
+                const circle1From = circles.find(c => c.id === line1.from)!;
+                const circle1To = circles.find(c => c.id === line1.to)!;
+                const circle2From = circles.find(c => c.id === line2.from)!;
+                const circle2To = circles.find(c => c.id === line2.to)!;
+
+                if (MathUtils.lineSegmentsIntersect(
+                    circle1From.position,
+                    circle1To.position,
+                    circle2From.position,
+                    circle2To.position
+                )) {
+                    intersectionCount++;
+                    console.error(`SOLUTION ERROR: Lines ${line1.from}-${line1.to} and ${line2.from}-${line2.to} intersect!`);
+                }
+            }
+        }
+
+        if (intersectionCount > 0) {
+            console.error(`SOLUTION VERIFICATION FAILED: Found ${intersectionCount} intersections in the solution!`);
+        } else {
+            console.log(`SOLUTION VERIFICATION PASSED: No intersections found in the solution.`);
+        }
+    }
+
+    /**
+     * Check if two lines share a common endpoint (helper for verification)
+     */
+    private static shareEndpoint(line1: Line, line2: Line): boolean {
+        return line1.from === line2.from ||
+            line1.from === line2.to ||
+            line1.to === line2.from ||
+            line1.to === line2.to;
     }
 }
 

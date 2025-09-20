@@ -3,7 +3,13 @@ import { MathUtils } from '../utils/MathUtils.js';
 
 export class IntersectionDetector {
     /**
-     * Check for line intersections and update line states
+     * Check for line intersections and update line states.
+     * 
+     * Compares all pairs of lines to detect intersections and marks intersecting lines.
+     * Lines that share a common endpoint are not considered intersecting.
+     * 
+     * @param circles Array of circles for position lookup
+     * @param lines Array of lines to check for intersections
      */
     static updateIntersections(circles: Circle[], lines: Line[]): void {
         // Reset all intersection states
@@ -39,7 +45,11 @@ export class IntersectionDetector {
     }
 
     /**
-     * Check if two lines share a common endpoint
+     * Check if two lines share a common endpoint.
+     * 
+     * @param line1 First line to check
+     * @param line2 Second line to check
+     * @returns True if the lines share a common endpoint
      */
     private static shareEndpoint(line1: Line, line2: Line): boolean {
         return line1.from === line2.from ||

@@ -22,6 +22,10 @@ export interface LevelConfig {
     lines: Line[];
     levelNumber: number;
     canvasSize: Point;
+    solution?: {
+        circles: Circle[];
+        lines: Line[];
+    };
 }
 
 export interface GameState {
