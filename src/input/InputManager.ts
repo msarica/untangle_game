@@ -58,6 +58,7 @@ export class InputManager {
 
     private handleTouchStart(event: globalThis.TouchEvent): void {
         event.preventDefault();
+        event.stopPropagation();
         if (event.touches.length === 1) {
             const touch = event.touches[0];
             const position = this.getTouchPosition(touch);
@@ -67,6 +68,7 @@ export class InputManager {
 
     private handleTouchMove(event: globalThis.TouchEvent): void {
         event.preventDefault();
+        event.stopPropagation();
         if (event.touches.length === 1 && this.draggedCircleId !== null) {
             const touch = event.touches[0];
             const position = this.getTouchPosition(touch);
@@ -76,6 +78,7 @@ export class InputManager {
 
     private handleTouchEnd(event: globalThis.TouchEvent): void {
         event.preventDefault();
+        event.stopPropagation();
         this.handlePointerUp();
     }
 

@@ -92,7 +92,7 @@ export class Renderer {
 
             // Circle number
             this.ctx.fillStyle = 'white';
-            this.ctx.font = 'bold 14px Arial';
+            this.ctx.font = 'bold 18px Arial';
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
             this.ctx.fillText(

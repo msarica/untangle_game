@@ -198,8 +198,7 @@ export class Game {
             // Update intersection detection
             IntersectionDetector.updateIntersections(this.gameState.circles, this.gameState.lines);
 
-            // Check for completion
-            this.checkForCompletion();
+            // Don't check for completion while dragging - wait until drag ends
         }
     }
 
@@ -208,6 +207,9 @@ export class Game {
         if (circle) {
             circle.isDragging = false;
             this.gameState.draggedCircleId = null;
+
+            // Check for completion after drag ends
+            this.checkForCompletion();
         }
     }
 

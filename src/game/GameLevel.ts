@@ -2,7 +2,7 @@ import { Circle, Line, Point, LevelConfig } from '../types/GameTypes.js';
 import { MathUtils } from '../utils/MathUtils.js';
 
 export class GameLevel {
-    private static readonly CIRCLE_RADIUS = 20;
+    private static readonly CIRCLE_RADIUS = 30;
     private static readonly MIN_DISTANCE = 120; // Minimum distance between circles
 
     /**
