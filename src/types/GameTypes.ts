@@ -17,15 +17,19 @@ export interface Line {
     isIntersecting: boolean;
 }
 
+export interface LevelConfig {
+    circles: Circle[];
+    lines: Line[];
+    levelNumber: number;
+    canvasSize: Point;
+}
+
 export interface GameState {
     circles: Circle[];
     lines: Line[];
     draggedCircleId: number | null;
     canvasSize: Point;
-}
-
-export interface TouchEvent {
-    clientX: number;
-    clientY: number;
-    identifier: number;
+    currentLevel: number;
+    isCompleted: boolean;
+    levelConfigs: Map<number, LevelConfig>; // Store level configurations by level number
 }

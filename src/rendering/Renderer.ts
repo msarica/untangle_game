@@ -103,10 +103,4 @@ export class Renderer {
         });
     }
 
-    /**
-     * Get canvas size
-     */
-    getCanvasSize(): Point {
-        return { ...this.canvasSize };
-    }
 }

@@ -3,13 +3,13 @@ import { Game } from './game/Game.js';
 // Initialize the game when the page loads
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.createElement('canvas');
-    const app = document.getElementById('app');
+    const gameContainer = document.getElementById('game-container');
 
-    if (!app) {
-        throw new Error('App container not found');
+    if (!gameContainer) {
+        throw new Error('Game container not found');
     }
 
-    app.appendChild(canvas);
+    gameContainer.appendChild(canvas);
 
     // Initialize the game
     const game = new Game(canvas);

@@ -48,6 +48,26 @@ export class MathUtils {
     }
 
     /**
+     * Generate a more evenly distributed random position using grid-based approach
+     */
+    static randomPositionDistributed(maxX: number, maxY: number, margin: number = 50): Point {
+        // Create a grid-based distribution for better spacing
+        const gridCols = Math.floor(Math.sqrt((maxX - 2 * margin) * (maxY - 2 * margin) / (margin * margin)));
+        const gridRows = Math.floor((maxY - 2 * margin) / margin);
+
+        const cellWidth = (maxX - 2 * margin) / gridCols;
+        const cellHeight = (maxY - 2 * margin) / gridRows;
+
+        const col = Math.floor(Math.random() * gridCols);
+        const row = Math.floor(Math.random() * gridRows);
+
+        return {
+            x: margin + col * cellWidth + Math.random() * cellWidth,
+            y: margin + row * cellHeight + Math.random() * cellHeight
+        };
+    }
+
+    /**
      * Clamp a value between min and max
      */
     static clamp(value: number, min: number, max: number): number {

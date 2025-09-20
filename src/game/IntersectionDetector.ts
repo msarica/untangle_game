@@ -48,46 +48,4 @@ export class IntersectionDetector {
             line1.to === line2.to;
     }
 
-    /**
-     * Get lines that intersect with lines connected to a specific circle
-     */
-    static getIntersectingLinesForCircle(circleId: number, circles: Circle[], lines: Line[]): Line[] {
-        const circle = circles.find(c => c.id === circleId);
-        if (!circle) return [];
-
-        const intersectingLines: Line[] = [];
-
-        // Get all lines connected to this circle
-        const connectedLines = lines.filter(line =>
-            line.from === circleId || line.to === circleId
-        );
-
-        // Find lines that intersect with the connected lines
-        connectedLines.forEach(connectedLine => {
-            const otherLines = lines.filter(line =>
-                line !== connectedLine &&
-                !this.shareEndpoint(line, connectedLine)
-            );
-
-            otherLines.forEach(otherLine => {
-                const circle1From = circles.find(c => c.id === connectedLine.from)!;
-                const circle1To = circles.find(c => c.id === connectedLine.to)!;
-                const circle2From = circles.find(c => c.id === otherLine.from)!;
-                const circle2To = circles.find(c => c.id === otherLine.to)!;
-
-                if (MathUtils.lineSegmentsIntersect(
-                    circle1From.position,
-                    circle1To.position,
-                    circle2From.position,
-                    circle2To.position
-                )) {
-                    if (!intersectingLines.includes(otherLine)) {
-                        intersectingLines.push(otherLine);
-                    }
-                }
-            });
-        });
-
-        return intersectingLines;
-    }
 }

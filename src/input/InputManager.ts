@@ -1,4 +1,4 @@
-import { Circle, Point, TouchEvent } from '../types/GameTypes.js';
+import { Circle, Point } from '../types/GameTypes.js';
 import { MathUtils } from '../utils/MathUtils.js';
 
 export class InputManager {
@@ -8,7 +8,6 @@ export class InputManager {
     private onCircleDragEnd: (circleId: number) => void;
 
     private draggedCircleId: number | null = null;
-    private lastTouchPosition: Point = { x: 0, y: 0 };
 
     constructor(
         canvas: HTMLCanvasElement,
@@ -57,7 +56,7 @@ export class InputManager {
         this.handlePointerUp();
     }
 
-    private handleTouchStart(event: TouchEvent): void {
+    private handleTouchStart(event: globalThis.TouchEvent): void {
         event.preventDefault();
         if (event.touches.length === 1) {
             const touch = event.touches[0];
@@ -66,7 +65,7 @@ export class InputManager {
         }
     }
 
-    private handleTouchMove(event: TouchEvent): void {
+    private handleTouchMove(event: globalThis.TouchEvent): void {
         event.preventDefault();
         if (event.touches.length === 1 && this.draggedCircleId !== null) {
             const touch = event.touches[0];
@@ -75,13 +74,12 @@ export class InputManager {
         }
     }
 
-    private handleTouchEnd(event: TouchEvent): void {
+    private handleTouchEnd(event: globalThis.TouchEvent): void {
         event.preventDefault();
         this.handlePointerUp();
     }
 
     private handlePointerDown(position: Point): void {
-        this.lastTouchPosition = position;
         // Find circle at position
         const circleId = this.findCircleAtPosition(position);
         if (circleId !== null) {
@@ -93,7 +91,6 @@ export class InputManager {
     private handlePointerMove(position: Point): void {
         if (this.draggedCircleId !== null) {
             this.onCircleDrag(this.draggedCircleId, position);
-            this.lastTouchPosition = position;
         }
     }
 
@@ -104,14 +101,9 @@ export class InputManager {
         }
     }
 
-    private findCircleAtPosition(position: Point): number | null {
+    private findCircleAtPosition(_position: Point): number | null {
         // This will be set by the game when circles are available
         return null;
-    }
-
-    public setCircles(circles: Circle[]): void {
-        // Store circles reference for hit testing
-        (this as any).circles = circles;
     }
 
     private getMousePosition(event: MouseEvent): Point {

@@ -6,33 +6,40 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Untangle Game</title>
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background: #1a1a1a;
-            color: white;
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-            touch-action: none;
-        }
-
-        #app {
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-        }
-
-        canvas {
-            display: block;
-            background: #2a2a2a;
-            touch-action: none;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
 </head>
 
 <body>
-    <div id="app"></div>
+    <div id="app">
+        <div id="header">
+            <div id="game-info">
+                <div id="level-display">Level 1</div>
+            </div>
+            <div id="header-buttons">
+                <button id="new-game-btn">New Game</button>
+                <button id="restart-btn">Restart</button>
+            </div>
+        </div>
+        <div id="game-container">
+            <div id="congratulations">
+                🎉 Congratulations! 🎉<br>
+                <small>Level completed!</small><br>
+                <button id="next-level-btn">Next Level</button>
+            </div>
+        </div>
+
+        <!-- New Game Confirmation Dialog -->
+        <div id="new-game-dialog" class="dialog-overlay">
+            <div class="dialog-content">
+                <h3>Start New Game?</h3>
+                <p>This will reset your progress and start from Level 1.</p>
+                <div class="dialog-buttons">
+                    <button id="confirm-new-game-btn">Yes, Start New Game</button>
+                    <button id="cancel-new-game-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script type="module" src="/src/main.ts"></script>
 </body>
 
