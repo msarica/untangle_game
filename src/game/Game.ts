@@ -1,4 +1,4 @@
-import { Point, GameState, LevelConfig } from '../types/GameTypes.js';
+import { Point, GameState, LevelConfig, Circle, Line } from '../types/GameTypes.js';
 import { GameLevel } from './GameLevel.js';
 import { IntersectionDetector } from './IntersectionDetector.js';
 import { Renderer } from '../rendering/Renderer.js';
