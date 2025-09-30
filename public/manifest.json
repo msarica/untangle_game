@@ -1,5 +1,6 @@
 {
   "name": "Untangle Game",
+  "version": "1.0.1",
   "short_name": "Untangle",
   "description": "A puzzle game where you untangle connected nodes",
   "start_url": "/untangle/",
@@ -22,7 +23,10 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["games", "entertainment"],
+  "categories": [
+    "games",
+    "entertainment"
+  ],
   "lang": "en",
   "dir": "ltr"
 }

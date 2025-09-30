@@ -4,6 +4,7 @@ import { IntersectionDetector } from './IntersectionDetector.js';
 import { Renderer } from '../rendering/Renderer.js';
 import { InputManager } from '../input/InputManager.js';
 import { MathUtils } from '../utils/MathUtils.js';
+import manifest from '../../public/manifest.json';
 
 export class Game {
     private canvas: HTMLCanvasElement;
@@ -13,6 +14,7 @@ export class Game {
     private animationId: number | null = null;
     private currentSolution: { circles: Circle[]; lines: Line[] } | null = null;
     private levelDisplay: HTMLElement;
+    private versionDisplay: HTMLElement;
     private restartButton: HTMLButtonElement;
     private newGameButton: HTMLButtonElement;
     private solveButton: HTMLButtonElement;
@@ -37,6 +39,7 @@ export class Game {
 
         // Get UI elements
         this.levelDisplay = document.getElementById('level-display')!;
+        this.versionDisplay = document.getElementById('version-display')!;
         this.restartButton = document.getElementById('restart-btn') as HTMLButtonElement;
         this.newGameButton = document.getElementById('new-game-btn') as HTMLButtonElement;
         this.solveButton = document.getElementById('solve-btn') as HTMLButtonElement;
@@ -47,7 +50,7 @@ export class Game {
         this.cancelNewGameButton = document.getElementById('cancel-new-game-btn') as HTMLButtonElement;
 
         // Setup event listeners
-        this.restartButton.addEventListener('click', () => this.initializeGame());
+        this.restartButton.addEventListener('click', () => this.restartLevel());
         this.newGameButton.addEventListener('click', () => this.showNewGameDialog());
         this.solveButton.addEventListener('click', () => this.showSolution());
         this.nextLevelButton.addEventListener('click', () => this.nextLevel());
@@ -63,6 +66,7 @@ export class Game {
 
         this.setupCanvas();
         this.initializeGame();
+        this.updateVersionDisplay();
         this.gameLoop();
     }
 
@@ -90,18 +94,28 @@ export class Game {
         this.gameState.isCompleted = false;
         this.hideCongratulations();
 
-        // Check if we have a stored configuration for this level
-        const storedConfig = this.gameState.levelConfigs.get(this.gameState.currentLevel);
+        // Try to load saved game state first
+        this.loadGameState();
 
-        // Generate or reuse level configuration
-        const level = GameLevel.generateLevel(this.gameState.currentLevel, this.gameState.canvasSize, storedConfig);
-        this.gameState.circles = level.circles;
-        this.gameState.lines = level.lines;
-        this.currentSolution = level.solution || null;
+        // If no saved state was loaded, generate a new level
+        if (this.gameState.circles.length === 0) {
+            // Check if we have a stored configuration for this level
+            const storedConfig = this.gameState.levelConfigs.get(this.gameState.currentLevel);
 
-        // Store the level configuration if it's new (not from stored config)
-        if (!storedConfig) {
-            this.storeLevelConfig(this.gameState.currentLevel, level.circles, level.lines, level.solution);
+            // Generate or reuse level configuration
+            const level = GameLevel.generateLevel(this.gameState.currentLevel, this.gameState.canvasSize, storedConfig);
+            this.gameState.circles = level.circles;
+            this.gameState.lines = level.lines;
+            this.currentSolution = level.solution || null;
+
+            // Store the level configuration if it's new (not from stored config)
+            if (!storedConfig) {
+                this.storeLevelConfig(this.gameState.currentLevel, level.circles, level.lines, level.solution);
+            }
+        } else {
+            // We have saved state, get the solution from stored config
+            const storedConfig = this.gameState.levelConfigs.get(this.gameState.currentLevel);
+            this.currentSolution = storedConfig?.solution || null;
         }
 
         // Update input manager with circles for hit testing
@@ -118,6 +132,11 @@ export class Game {
         this.levelDisplay.textContent = `Level ${this.gameState.currentLevel}`;
     }
 
+    private updateVersionDisplay(): void {
+        console.log('Manifest version:', manifest.version);
+        this.versionDisplay.textContent = `v${manifest.version}`;
+    }
+
     private showCongratulations(): void {
         this.congratulationsElement.classList.add('show');
     }
@@ -132,6 +151,52 @@ export class Game {
         this.initializeGame();
     }
 
+    private restartLevel(): void {
+        // Clear saved state for current level
+        localStorage.removeItem('untangle-game-state');
+
+        // Reset completion status
+        this.gameState.isCompleted = false;
+        this.hideCongratulations();
+
+        // Clear current circles and lines
+        this.gameState.circles = [];
+        this.gameState.lines = [];
+
+        // Get the stored configuration for this level
+        const storedConfig = this.gameState.levelConfigs.get(this.gameState.currentLevel);
+
+        if (storedConfig) {
+            // Use the stored configuration to regenerate the level
+            const level = GameLevel.generateLevel(this.gameState.currentLevel, this.gameState.canvasSize, storedConfig);
+            this.gameState.circles = level.circles;
+            this.gameState.lines = level.lines;
+            this.currentSolution = level.solution || null;
+
+            console.log('Level restarted from stored configuration');
+        } else {
+            // If no stored config, generate a new level
+            const level = GameLevel.generateLevel(this.gameState.currentLevel, this.gameState.canvasSize);
+            this.gameState.circles = level.circles;
+            this.gameState.lines = level.lines;
+            this.currentSolution = level.solution || null;
+
+            // Store the new configuration
+            this.storeLevelConfig(this.gameState.currentLevel, level.circles, level.lines, level.solution);
+
+            console.log('Level restarted with new configuration');
+        }
+
+        // Update input manager with circles for hit testing
+        this.inputManager.updateCircleHitTest(this.gameState.circles);
+
+        // Initial intersection check
+        IntersectionDetector.updateIntersections(this.gameState.circles, this.gameState.lines);
+
+        // Update level display
+        this.updateLevelDisplay();
+    }
+
     private showNewGameDialog(): void {
         this.newGameDialog.classList.add('show');
     }
@@ -143,6 +208,12 @@ export class Game {
     private startNewGame(): void {
         this.gameState.currentLevel = 1;
         this.gameState.levelConfigs.clear(); // Clear all stored level configurations for a fresh start
+        this.gameState.circles = [];
+        this.gameState.lines = [];
+        this.gameState.isCompleted = false;
+
+        // Clear saved state
+        localStorage.removeItem('untangle-game-state');
         this.saveCurrentLevel();
         this.hideNewGameDialog();
         this.initializeGame();
@@ -188,6 +259,60 @@ export class Game {
 
     private saveCurrentLevel(): void {
         localStorage.setItem('untangle-game-level', this.gameState.currentLevel.toString());
+    }
+
+    private saveGameState(): void {
+        // Save current level
+        this.saveCurrentLevel();
+
+        // Save complete game state including circle positions
+        const gameStateData = {
+            circles: this.gameState.circles.map(circle => ({
+                id: circle.id,
+                position: { x: circle.position.x, y: circle.position.y },
+                radius: circle.radius,
+                isDragging: false, // Always save as not dragging
+                connections: [...circle.connections]
+            })),
+            lines: this.gameState.lines.map(line => ({
+                from: line.from,
+                to: line.to,
+                isIntersecting: line.isIntersecting
+            })),
+            currentLevel: this.gameState.currentLevel,
+            isCompleted: this.gameState.isCompleted,
+            lastSaved: Date.now()
+        };
+
+        localStorage.setItem('untangle-game-state', JSON.stringify(gameStateData));
+        console.log('Complete game state saved - Level:', this.gameState.currentLevel, 'Circles:', this.gameState.circles.length);
+    }
+
+    private loadGameState(): void {
+        try {
+            const savedStateStr = localStorage.getItem('untangle-game-state');
+            if (savedStateStr) {
+                const savedState = JSON.parse(savedStateStr);
+
+                // Only load if it's for the current level
+                if (savedState.currentLevel === this.gameState.currentLevel) {
+                    this.gameState.circles = savedState.circles || [];
+                    this.gameState.lines = savedState.lines || [];
+                    this.gameState.isCompleted = savedState.isCompleted || false;
+
+                    console.log('Loaded saved game state - Level:', savedState.currentLevel, 'Circles:', savedState.circles?.length || 0);
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load game state:', error);
+        }
+
+        // Clear the game state when no saved state is found
+        this.gameState.circles = [];
+        this.gameState.lines = [];
+        this.gameState.isCompleted = false;
+        console.log('No saved state found, starting fresh');
     }
 
     private storeLevelConfig(levelNumber: number, circles: Circle[], lines: Line[], solution?: { circles: Circle[]; lines: Line[] }): void {
@@ -258,6 +383,9 @@ export class Game {
 
             // Check for completion after drag ends
             this.checkForCompletion();
+
+            // Save state after user dropped the node
+            this.saveGameState();
         }
     }
 

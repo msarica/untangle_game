@@ -2,6 +2,7 @@ const CACHE_NAME = 'untangle-game-v2';
 
 // Install event - cache essential resources
 self.addEventListener('install', (event) => {
+    console.log('Service Worker installing...');
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
@@ -13,6 +14,10 @@ self.addEventListener('install', (event) => {
                     './icon-512.png',
                     './manifest.json'
                 ]);
+            })
+            .then(() => {
+                // Skip waiting to activate the new service worker immediately
+                return self.skipWaiting();
             })
     );
 });
@@ -50,6 +55,7 @@ self.addEventListener('fetch', (event) => {
 
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
+    console.log('Service Worker activating...');
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
@@ -60,6 +66,16 @@ self.addEventListener('activate', (event) => {
                     }
                 })
             );
+        }).then(() => {
+            // Take control of all clients immediately
+            return self.clients.claim();
         })
     );
+});
+
+// Listen for messages from the main thread
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'SKIP_WAITING') {
+        self.skipWaiting();
+    }
 });
