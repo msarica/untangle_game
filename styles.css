@@ -48,6 +48,14 @@ body {
     font-size: 18px;
     font-weight: bold;
     color: #4CAF50;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+#level-display:hover {
+    background: rgba(76, 175, 80, 0.1);
 }
 
 #version-display {
@@ -195,5 +203,77 @@ canvas {
 }
 
 #cancel-new-game-btn:hover {
+    background: #555;
+}
+
+/* Level Selector Styles */
+.level-selector-content {
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.level-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 8px;
+    margin: 20px 0;
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 10px;
+    border: 1px solid #555;
+    border-radius: 6px;
+    background: #2a2a2a;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.level-button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    transition: all 0.3s;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.level-button:hover {
+    background: #45a049;
+    transform: scale(1.05);
+}
+
+.level-button.current {
+    background: #FF9800;
+    box-shadow: 0 0 10px rgba(255, 152, 0, 0.5);
+}
+
+.level-button.current:hover {
+    background: #F57C00;
+}
+
+.level-button.locked {
+    background: #666;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.level-button.locked:hover {
+    background: #666;
+    transform: none;
+}
+
+#close-level-selector-btn {
+    background: #666;
+}
+
+#close-level-selector-btn:hover {
     background: #555;
 }

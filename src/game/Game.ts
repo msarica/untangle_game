@@ -23,6 +23,9 @@ export class Game {
     private newGameDialog: HTMLElement;
     private confirmNewGameButton: HTMLButtonElement;
     private cancelNewGameButton: HTMLButtonElement;
+    private levelSelectorDialog: HTMLElement;
+    private levelGrid: HTMLElement;
+    private closeLevelSelectorButton: HTMLButtonElement;
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
@@ -48,6 +51,9 @@ export class Game {
         this.newGameDialog = document.getElementById('new-game-dialog')!;
         this.confirmNewGameButton = document.getElementById('confirm-new-game-btn') as HTMLButtonElement;
         this.cancelNewGameButton = document.getElementById('cancel-new-game-btn') as HTMLButtonElement;
+        this.levelSelectorDialog = document.getElementById('level-selector-dialog')!;
+        this.levelGrid = document.getElementById('level-grid')!;
+        this.closeLevelSelectorButton = document.getElementById('close-level-selector-btn') as HTMLButtonElement;
 
         // Setup event listeners
         this.restartButton.addEventListener('click', () => this.restartLevel());
@@ -56,6 +62,13 @@ export class Game {
         this.nextLevelButton.addEventListener('click', () => this.nextLevel());
         this.confirmNewGameButton.addEventListener('click', () => this.startNewGame());
         this.cancelNewGameButton.addEventListener('click', () => this.hideNewGameDialog());
+        this.levelDisplay.addEventListener('click', () => this.showLevelSelector());
+        this.closeLevelSelectorButton.addEventListener('click', () => this.hideLevelSelector());
+        this.levelSelectorDialog.addEventListener('click', (e) => {
+            if (e.target === this.levelSelectorDialog) {
+                this.hideLevelSelector();
+            }
+        });
 
         this.inputManager = new InputManager(
             canvas,
@@ -203,6 +216,55 @@ export class Game {
 
     private hideNewGameDialog(): void {
         this.newGameDialog.classList.remove('show');
+    }
+
+    private showLevelSelector(): void {
+        this.generateLevelButtons();
+        this.levelSelectorDialog.classList.add('show');
+    }
+
+    private hideLevelSelector(): void {
+        this.levelSelectorDialog.classList.remove('show');
+    }
+
+    private generateLevelButtons(): void {
+        this.levelGrid.innerHTML = '';
+        const maxUnlockedLevel = this.getMaxUnlockedLevel();
+
+        for (let level = 1; level <= 100; level++) {
+            const button = document.createElement('button');
+            button.className = 'level-button';
+            button.textContent = level.toString();
+            button.dataset.level = level.toString();
+
+            if (level === this.gameState.currentLevel) {
+                button.classList.add('current');
+            } else if (level > maxUnlockedLevel) {
+                button.classList.add('locked');
+                button.disabled = true;
+            }
+
+            if (level <= maxUnlockedLevel) {
+                button.addEventListener('click', () => this.selectLevel(level));
+            }
+
+            this.levelGrid.appendChild(button);
+        }
+    }
+
+    private getMaxUnlockedLevel(): number {
+        // Players can only access levels up to their current level
+        // They need to complete the current level to unlock the next one
+        return Math.max(1, this.gameState.currentLevel);
+    }
+
+    private selectLevel(level: number): void {
+        if (level >= 1 && level <= this.getMaxUnlockedLevel()) {
+            this.gameState.currentLevel = level;
+            this.saveCurrentLevel();
+            this.hideLevelSelector();
+            this.initializeGame();
+        }
     }
 
     private startNewGame(): void {
