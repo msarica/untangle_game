@@ -161,6 +161,7 @@ export class Game {
     private nextLevel(): void {
         this.gameState.currentLevel++;
         this.saveCurrentLevel();
+        this.saveHighestLevelReached(this.gameState.currentLevel);
         this.initializeGame();
     }
 
@@ -253,9 +254,9 @@ export class Game {
     }
 
     private getMaxUnlockedLevel(): number {
-        // Players can only access levels up to their current level
-        // They need to complete the current level to unlock the next one
-        return Math.max(1, this.gameState.currentLevel);
+        // Players can access levels up to their highest level reached
+        // Once a level is unlocked, it stays unlocked
+        return Math.max(1, this.getHighestLevelReached());
     }
 
     private selectLevel(level: number): void {
@@ -274,9 +275,11 @@ export class Game {
         this.gameState.lines = [];
         this.gameState.isCompleted = false;
 
-        // Clear saved state
+        // Clear saved state and reset highest level reached
         localStorage.removeItem('untangle-game-state');
+        localStorage.removeItem('untangle-game-highest-level');
         this.saveCurrentLevel();
+        this.saveHighestLevelReached(1);
         this.hideNewGameDialog();
         this.initializeGame();
     }
@@ -317,6 +320,18 @@ export class Game {
     private loadSavedLevel(): number {
         const savedLevel = localStorage.getItem('untangle-game-level');
         return savedLevel ? parseInt(savedLevel, 10) : 1;
+    }
+
+    private getHighestLevelReached(): number {
+        const savedHighestLevel = localStorage.getItem('untangle-game-highest-level');
+        return savedHighestLevel ? parseInt(savedHighestLevel, 10) : 1;
+    }
+
+    private saveHighestLevelReached(level: number): void {
+        const currentHighest = this.getHighestLevelReached();
+        if (level > currentHighest) {
+            localStorage.setItem('untangle-game-highest-level', level.toString());
+        }
     }
 
     private saveCurrentLevel(): void {

@@ -1,6 +1,6 @@
 {
   "name": "Untangle Game",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "short_name": "Untangle",
   "description": "A puzzle game where you untangle connected nodes",
   "start_url": "/untangle/",
